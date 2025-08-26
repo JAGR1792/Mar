@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problema del Caballo de Euler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .game-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .board-container {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            gap: 2px;
+            margin: 20px auto;
+            border: 3px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .square.white {
+            background-color: #f0d9b5;
+            color: #333;
+        }
+        
+        .square.black {
+            background-color: #b58863;
+            color: white;
+        }
+        
+        .square:hover {
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        
+        .square.visited {
+            background-color: #4CAF50 !important;
+            color: white;
+        }
+        
+        .square.current {
+            background-color: #FF5722 !important;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+        
+        .square.possible {
+            background-color: #FFC107 !important;
+            color: #333;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.7);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .controls {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            text-align: left;
+        }
+        
+        .speed-control {
+            margin: 15px 0;
+        }
+        
+        .speed-control input {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐎 Problema del Caballo de Euler</h1>
+        
+        <div class="game-area">
+            <div class="board-container">
+                <div id="chessboard"></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4CAF50;"></div>
+                        <span>Visitado</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF5722;"></div>
+                        <span>Actual</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FFC107;"></div>
+                        <span>Posible</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <h3>Controles</h3>
+                <button onclick="resetGame()">🔄 Reiniciar</button>
+                <button onclick="autoSolve()" id="autoBtn">🤖 Solución Automática</button>
+                <button onclick="stopAuto()" id="stopBtn" disabled>⏹️ Detener</button>
+                
+                <div class="speed-control">
+                    <label>Velocidad de animación:</label>
+                    <input type="range" id="speedSlider" min="50" max="2000" value="500">
+                    <span id="speedValue">500ms</span>
+                </div>
+                
+                <div class="info">
+                    <strong>Estadísticas:</strong><br>
+                    Movimiento: <span id="moveCount">0</span>/64<br>
+                    Posición actual: <span id="currentPos">-</span><br>
+                    Modo: <span id="gameMode">Manual</span>
+                </div>
+                
+                <div class="info">
+                    <strong>Instrucciones:</strong><br>
+                    1. Haz clic en cualquier casilla para empezar<br>
+                    2. Continúa haciendo clic en casillas válidas<br>
+                    3. O usa la solución automática<br>
+                    4. El objetivo es visitar las 64 casillas
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let board = Array(8).fill().map(() => Array(8).fill(0));
+        let visited = Array(8).fill().map(() => Array(8).fill(false));
+        let moveCount = 0;
+        let currentRow = -1, currentCol = -1;
+        let gameActive = false;
+        let autoSolving = false;
+        let startRow = -1, startCol = -1;
+
+        // Movimientos posibles del caballo
+        const knightMoves = [
+            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+            [1, -2], [1, 2], [2, -1], [2, 1]
+        ];
+
+        // Inicializar el tablero
+        function initBoard() {
+            const chessboard = document.getElementById('chessboard');
+            chessboard.innerHTML = '';
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = `square ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+                    square.id = `sq-${row}-${col}`;
+                    square.onclick = () => handleSquareClick(row, col);
+                    chessboard.appendChild(square);
+                }
+            }
+        }
+
+        // Verificar si una posición está dentro del tablero
+        function isValid(row, col) {
+            return row >= 0 && row < 8 && col >= 0 && col < 8;
+        }
+
+        // Obtener movimientos válidos desde una posición
+        function getValidMoves(row, col) {
+            const validMoves = [];
+            for (const [dr, dc] of knightMoves) {
+                const newRow = row + dr;
+                const newCol = col + dc;
+                if (isValid(newRow, newCol) && !visited[newRow][newCol]) {
+                    validMoves.push([newRow, newCol]);
+                }
+            }
+            return validMoves;
+        }
+
+        // Contar el número de movimientos posibles desde una posición
+        function countPossibleMoves(row, col) {
+            return getValidMoves(row, col).length;
+        }
+
+        // Calcular distancia a la esquina más cercana
+        function distanceToNearestCorner(row, col) {
+            const corners = [[0, 0], [0, 7], [7, 0], [7, 7]];
+            return Math.min(...corners.map(([cr, cc]) => 
+                Math.abs(row - cr) + Math.abs(col - cc)
+            ));
+        }
+
+        // Calcular distancia a la pared más cercana
+        function distanceToNearestWall(row, col) {
+            return Math.min(row, 7 - row, col, 7 - col);
+        }
+
+        // Determinar el cuadrante de una posición
+        function getQuadrant(row, col) {
+            if (row < 4 && col < 4) return 0; // Superior izquierdo
+            if (row < 4 && col >= 4) return 1; // Superior derecho
+            if (row >= 4 && col < 4) return 2; // Inferior izquierdo
+            return 3; // Inferior derecho
+        }
+
+        // Ordenar movimientos en sentido horario según el cuadrante inicial
+        function sortMovesClockwise(moves, startQuadrant) {
+            // Ordenar los movimientos del caballo en sentido horario
+            const clockwiseOrder = [
+                [-2, -1], [-1, -2], [1, -2], [2, -1],
+                [2, 1], [1, 2], [-1, 2], [-2, 1]
+            ];
+            
+            // Rotar el orden según el cuadrante inicial
+            const rotations = [0, 2, 6, 4]; // Rotaciones para cada cuadrante
+            const startIndex = rotations[startQuadrant];
+            
+            const rotatedOrder = [
+                ...clockwiseOrder.slice(startIndex),
+                ...clockwiseOrder.slice(0, startIndex)
+            ];
+
+            return moves.sort((a, b) => {
+                const [r1, c1] = a;
+                const [r2, c2] = b;
+                const move1 = [r1 - currentRow, c1 - currentCol];
+                const move2 = [r2 - currentRow, c2 - currentCol];
+                
+                const idx1 = rotatedOrder.findIndex(([dr, dc]) => dr === move1[0] && dc === move1[1]);
+                const idx2 = rotatedOrder.findIndex(([dr, dc]) => dr === move2[0] && dc === move2[1]);
+                
+                return idx1 - idx2;
+            });
+        }
+
+        // Algoritmo principal para encontrar el siguiente movimiento
+        function findNextMove() {
+            if (currentRow === -1 || currentCol === -1) return null;
+
+            const validMoves = getValidMoves(currentRow, currentCol);
+            if (validMoves.length === 0) return null;
+
+            // Paso 2: Encontrar casillas con menor número de movimientos posibles
+            let minMoves = Infinity;
+            validMoves.forEach(([r, c]) => {
+                const moves = countPossibleMoves(r, c);
+                if (moves < minMoves) {
+                    minMoves = moves;
+                }
+            });
+
+            let candidates = validMoves.filter(([r, c]) => 
+                countPossibleMoves(r, c) === minMoves
+            );
+
+            if (candidates.length === 1) {
+                return candidates[0];
+            }
+
+            // Paso 3: Elegir la más cercana a una esquina
+            let minCornerDist = Infinity;
+            candidates.forEach(([r, c]) => {
+                const dist = distanceToNearestCorner(r, c);
+                if (dist < minCornerDist) {
+                    minCornerDist = dist;
+                }
+            });
+
+            candidates = candidates.filter(([r, c]) => 
+                distanceToNearestCorner(r, c) === minCornerDist
+            );
+
+            if (candidates.length === 1) {
+                return candidates[0];
+            }
+
+            // Paso 4: Elegir la más cercana a una pared
+            let minWallDist = Infinity;
+            candidates.forEach(([r, c]) => {
+                const dist = distanceToNearestWall(r, c);
+                if (dist < minWallDist) {
+                    minWallDist = dist;
+                }
+            });
+
+            candidates = candidates.filter(([r, c]) => 
+                distanceToNearestWall(r, c) === minWallDist
+            );
+
+            if (candidates.length === 1) {
+                return candidates[0];
+            }
+
+            // Paso 5: Ordenar en sentido horario según cuadrante inicial
+            const startQuadrant = getQuadrant(startRow, startCol);
+            candidates = sortMovesClockwise(candidates, startQuadrant);
+
+            return candidates[0];
+        }
+
+        // Manejar clic en casilla
+        function handleSquareClick(row, col) {
+            if (autoSolving) return;
+
+            if (!gameActive) {
+                // Primer movimiento
+                startGame(row, col);
+            } else {
+                // Verificar si el movimiento es válido
+                const validMoves = getValidMoves(currentRow, currentCol);
+                const isValidMove = validMoves.some(([r, c]) => r === row && c === col);
+                
+                if (isValidMove) {
+                    makeMove(row, col);
+                }
+            }
+        }
+
+        // Iniciar el juego
+        function startGame(row, col) {
+            currentRow = row;
+            currentCol = col;
+            startRow = row;
+            startCol = col;
+            gameActive = true;
+            makeMove(row, col);
+            document.getElementById('gameMode').textContent = 'Manual';
+        }
+
+        // Realizar un movimiento
+        function makeMove(row, col) {
+            moveCount++;
+            visited[row][col] = true;
+            board[row][col] = moveCount;
+            
+            // Actualizar interfaz
+            updateSquare(row, col, moveCount, 'current');
+            
+            // Marcar la casilla anterior como visitada
+            if (currentRow !== row || currentCol !== col) {
+                updateSquare(currentRow, currentCol, board[currentRow][currentCol], 'visited');
+            }
+            
+            currentRow = row;
+            currentCol = col;
+            
+            // Actualizar información
+            document.getElementById('moveCount').textContent = moveCount;
+            document.getElementById('currentPos').textContent = `${String.fromCharCode(65 + col)}${8 - row}`;
+            
+            // Mostrar movimientos posibles en modo manual
+            if (!autoSolving) {
+                showPossibleMoves();
+            }
+            
+            // Verificar si el juego ha terminado
+            if (moveCount === 64) {
+                alert('¡Felicitaciones! Has completado el recorrido del caballo de Euler!');
+                gameActive = false;
+            } else if (getValidMoves(row, col).length === 0 && moveCount < 64) {
+                alert(`Juego terminado. Has visitado ${moveCount} casillas de 64.`);
+                gameActive = false;
+            }
+        }
+
+        // Actualizar una casilla del tablero
+        function updateSquare(row, col, number, className) {
+            const square = document.getElementById(`sq-${row}-${col}`);
+            square.textContent = number;
+            square.className = `square ${(row + col) % 2 === 0 ? 'white' : 'black'} ${className}`;
+        }
+
+        // Mostrar movimientos posibles
+        function showPossibleMoves() {
+            // Limpiar movimientos posibles anteriores
+            clearPossibleMoves();
+            
+            if (currentRow !== -1 && currentCol !== -1) {
+                const validMoves = getValidMoves(currentRow, currentCol);
+                validMoves.forEach(([row, col]) => {
+                    const square = document.getElementById(`sq-${row}-${col}`);
+                    square.classList.add('possible');
+                });
+            }
+        }
+
+        // Limpiar movimientos posibles
+        function clearPossibleMoves() {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.getElementById(`sq-${row}-${col}`);
+                    square.classList.remove('possible');
+                }
+            }
+        }
+
+        // Solución automática
+        async function autoSolve() {
+            if (autoSolving) return;
+            
+            autoSolving = true;
+            document.getElementById('autoBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('gameMode').textContent = 'Automático';
+            
+            clearPossibleMoves();
+            
+            // Si no hay juego activo, empezar desde una esquina
+            if (!gameActive) {
+                startGame(0, 0);
+            }
+            
+            const delay = parseInt(document.getElementById('speedSlider').value);
+            
+            while (autoSolving && gameActive && moveCount < 64) {
+                const nextMove = findNextMove();
+                if (!nextMove) break;
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+                if (!autoSolving) break;
+                
+                makeMove(nextMove[0], nextMove[1]);
+            }
+            
+            autoSolving = false;
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+
+        // Detener solución automática
+        function stopAuto() {
+            autoSolving = false;
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('gameMode').textContent = 'Manual';
+            showPossibleMoves();
+        }
+
+        // Reiniciar el juego
+        function resetGame() {
+            board = Array(8).fill().map(() => Array(8).fill(0));
+            visited = Array(8).fill().map(() => Array(8).fill(false));
+            moveCount = 0;
+            currentRow = -1;
+            currentCol = -1;
+            startRow = -1;
+            startCol = -1;
+            gameActive = false;
+            autoSolving = false;
+            
+            // Reiniciar interfaz
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.getElementById(`sq-${row}-${col}`);
+                    square.textContent = '';
+                    square.className = `square ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+                }
+            }
+            
+            document.getElementById('moveCount').textContent = '0';
+            document.getElementById('currentPos').textContent = '-';
+            document.getElementById('gameMode').textContent = 'Manual';
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+
+        // Actualizar velocidad
+        document.getElementById('speedSlider').addEventListener('input', function() {
+            document.getElementById('speedValue').textContent = this.value + 'ms';
+        });
+
+        // Inicializar
+        initBoard();
+    </script>
+</body>
+
+</html>
